@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>사내 헬스키퍼 서비스</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Noto Sans KR"', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    ::selection { background-color: #dbeafe; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeInUp 0.4s ease forwards; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ── Inline SVG icon system ── */
+    function Svg({ size = 24, className = '', fill = 'none', strokeWidth = 2, children }) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg"
+          width={size} height={size} viewBox="0 0 24 24"
+          fill={fill} stroke="currentColor"
+          strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+          className={className}>
+          {children}
+        </svg>
+      );
+    }
+
+    const Info        = (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></Svg>;
+    const AlertCircle = (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Svg>;
+    const Heart       = ({ fill = 'none', ...p }) => <Svg {...p} fill={fill}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></Svg>;
+    const MapPin      = (p) => <Svg {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></Svg>;
+    const ExternalLink = (p) => <Svg {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></Svg>;
+    const Calendar    = (p) => <Svg {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></Svg>;
+    const Users       = (p) => <Svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Svg>;
+    const Hand        = (p) => <Svg {...p}><path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></Svg>;
+    const ShieldAlert = (p) => <Svg {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></Svg>;
+    const Thermometer = (p) => <Svg {...p}><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></Svg>;
+    const MapIcon     = (p) => <Svg {...p}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></Svg>;
+
+    /* ── Data ── */
+    const COMPANY_LINKS = [
+      { id: 'wgames', label: "더블유게임즈 구성원 예약",
+        url: "https://healthkeeper-doubleugames.dug-ngs.com:33733/",
+        color: "bg-blue-600 hover:bg-blue-700 ring-blue-200",
+        logo: "language-class/images/dug-icon.png", logoAlt: "DoubleU Games" },
+      { id: 'ddi', label: "더블다운인터액티브 구성원 예약",
+        url: "https://healthkeeper-doubledown.dug-ngs.com:33733/",
+        color: "bg-indigo-600 hover:bg-indigo-700 ring-indigo-200",
+        logo: "language-class/images/ddi-icon.png", logoAlt: "DoubleDown Interactive" },
+    ];
+
+    const OPERATION_RULES = [
+      { text: "월 1회 운영 (추가모집 외 월 2회 예약 불가)", important: true, icon: <Calendar size={18} /> },
+      { text: "전월 말 영업일 오픈", icon: <Info size={18} /> },
+      { text: "예약 시스템 상 본인 명의로 예약 (예약시스템 로그인 후 본인 성명 변경 必)", icon: <Users size={18} /> },
+      { text: "본인 예약타임만 참석해주세요. (대리이용 불가)", icon: <ShieldAlert size={18} /> },
+      { text: "당일 신청 / 당일 취소 불가 (부득이 당일 취소 필요시 피플팀 문의)", important: true, icon: <AlertCircle size={18} /> },
+      { text: "예약시스템 내부 소스 및 코드 변경 및 훼손 절대 금지", icon: <ShieldAlert size={18} /> },
+      { text: "마사지 받으시는 날은 두꺼운 티셔츠는 지양해 주세요.", icon: <Info size={18} /> },
+      { text: "예약 시스템 접속은 본인 소속 회사를 구분하여 부탁 드립니다.", icon: <Info size={18} /> },
+    ];
+
+    const COOPERATION_RULES = [
+      { text: "헬스키퍼 매니저님도 우리회사 직원입니다. 존중을 부탁드립니다.", icon: <Heart size={18} /> },
+      { text: "여기, 저기 라는 말보다 어깨, 팔 등 구체적인 부분을 말씀해주세요.", icon: <Info size={18} /> },
+      { text: "마사지 강도가 약하거나 센 경우는 즉각 말씀을 해주세요.", icon: <Hand size={18} /> },
+      { text: "발열, 기침등 의심증상이 있으신 경우 취소 부탁드립니다. (페널티 미부과)", icon: <Thermometer size={18} /> },
+    ];
+
+    /* ── Floor Maps ── */
+    function Floor13Map() {
+      return (
+        <div className="w-full flex flex-col items-center justify-center animate-fade-in">
+          <div className="relative w-full max-w-full aspect-[4/3] text-slate-600 text-xs sm:text-sm font-medium bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-2 sm:p-3">
+            <div className="relative w-full h-full rounded-xl overflow-hidden border border-slate-100 bg-slate-50/50">
+              <div className="absolute top-0 left-0 w-full h-[22%] bg-slate-100/80 flex border-b border-slate-200/60 rounded-t-xl">
+                <div className="flex-1 flex items-center justify-center text-slate-400 border-r border-dashed border-slate-200/60">엘리베이터</div>
+                <div className="flex-1 flex items-center justify-center text-slate-500 font-semibold border-r border-dashed border-slate-200/60 bg-white/50">출입구</div>
+                <div className="flex-1 flex items-center justify-center text-slate-400">엘리베이터</div>
+              </div>
+              <div className="absolute top-[28%] left-[2%] w-[25%] h-[58%] border border-slate-200/80 rounded-lg flex flex-col bg-white shadow-sm overflow-hidden">
+                <div className="h-5 bg-slate-50 border-b border-slate-100"></div>
+                <div className="flex-1 flex p-1.5 gap-1.5">
+                  <div className="flex-1 flex flex-col gap-1">
+                    <div className="flex-1 bg-teal-50/60 border border-teal-100/50 rounded-sm"></div>
+                    <div className="flex-1 bg-teal-50/60 border border-teal-100/50 rounded-sm"></div>
+                    <div className="flex-1 bg-teal-50/60 border border-teal-100/50 rounded-sm"></div>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <div className="flex-1 bg-teal-50/60 border border-teal-100/50 rounded-sm"></div>
+                    <div className="flex-1 bg-teal-50/60 border border-teal-100/50 rounded-sm"></div>
+                    <div className="flex-1 bg-teal-50/60 border border-teal-100/50 rounded-sm"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute top-[28%] left-[29%] w-[32%] h-[58%] bg-gradient-to-br from-amber-50 to-yellow-100 border-2 border-amber-300/80 rounded-xl flex flex-col items-center justify-center shadow-md z-10 overflow-hidden group transition-all hover:scale-[1.02]">
+                <div className="absolute inset-0 bg-yellow-400/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="bg-white p-1.5 rounded-full shadow-sm mb-1 text-amber-500">
+                  <MapPin size={18} />
+                </div>
+                <span className="font-bold text-amber-900 text-sm tracking-tight">헬스키퍼실</span>
+              </div>
+              <div className="absolute top-[28%] left-[63%] w-[35%] h-[58%] bg-white border border-slate-200/80 rounded-lg flex flex-col items-center justify-center shadow-sm">
+                <span className="font-bold text-slate-700">Bangkok</span>
+                <span className="text-[10px] text-slate-400 mt-0.5">(8p)</span>
+              </div>
+              <div className="absolute top-[89%] left-[29%] w-[69%] h-[9%] bg-slate-100/80 border border-slate-200/60 rounded-md flex items-center justify-center text-[10px] text-slate-500 font-medium">
+                탕비 및 OA
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Floor16Map() {
+      return (
+        <div className="w-full flex flex-col items-center justify-center animate-fade-in">
+          <div className="relative w-full max-w-full aspect-[16/9] text-slate-600 text-[10px] sm:text-xs font-medium bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-2 sm:p-3">
+            <div className="relative w-full h-full rounded-xl overflow-hidden border border-slate-100 bg-white">
+              <div className="absolute top-0 left-0 w-[18%] h-full border-r border-slate-100 bg-slate-50/30">
+                <div className="absolute top-[20%] left-[10%] w-[80%] h-[45%] bg-gradient-to-br from-amber-50 to-yellow-100 border-2 border-amber-300/80 rounded-xl flex flex-col items-center justify-center shadow-md group transition-all hover:scale-[1.02] z-10">
+                  <div className="absolute inset-0 bg-yellow-400/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+                  <div className="bg-white p-1 rounded-full shadow-sm mb-1 text-amber-500">
+                    <MapPin size={14} />
+                  </div>
+                  <span className="leading-tight text-center font-bold text-amber-900 text-[10px] sm:text-xs">헬스<br/>키퍼실</span>
+                </div>
+              </div>
+              <div className="absolute top-0 left-[18%] w-[47%] h-full flex flex-col items-center justify-center bg-slate-50/50 border-r border-slate-100">
+                <span className="text-slate-400/80 font-semibold tracking-[0.2em] text-xs sm:text-sm">카페테리아</span>
+              </div>
+              <div className="absolute top-0 left-[65%] w-[35%] h-full bg-white">
+                <div className="absolute top-0 left-0 w-[20%] h-[25%] border-b border-r border-slate-100 bg-slate-50/50"></div>
+                <div className="absolute top-0 left-[20%] w-[50%] h-[25%] border-b border-r border-slate-100 flex items-center justify-center bg-white">
+                  <span className="text-slate-700 font-semibold">Dubai <span className="text-[9px] text-slate-400 font-normal">(8p)</span></span>
+                </div>
+                <div className="absolute top-0 left-[70%] w-[30%] h-[55%] border-b border-slate-100 flex flex-col items-center justify-center text-center bg-white">
+                  <span className="text-slate-700 font-semibold">Ottawa<br/><span className="text-[9px] text-slate-400 font-normal">(8p)</span></span>
+                </div>
+                <div className="absolute top-[25%] left-0 w-[70%] h-[30%] border-b border-r border-slate-100 flex items-center justify-center bg-slate-50/80">
+                  <span className="text-slate-500 font-medium">탕비실</span>
+                </div>
+                <div className="absolute top-[55%] left-0 w-[50%] h-[20%] border-b border-r border-slate-100 flex items-center justify-center bg-slate-100/60">
+                  <span className="text-slate-500">창고</span>
+                </div>
+                <div className="absolute top-[55%] left-[50%] w-[50%] h-[20%] border-b border-slate-100 flex items-center justify-center bg-slate-50/80">
+                  <span className="text-slate-500">메일룸</span>
+                </div>
+                <div className="absolute top-[75%] left-0 w-[45%] h-[25%] border-r border-slate-100 flex flex-col items-center justify-center text-center bg-white">
+                  <span className="text-slate-700 font-semibold leading-tight">Reception<br/><span className="text-[9px] text-slate-400 font-normal">(8p)</span></span>
+                </div>
+                <div className="absolute top-[80%] left-[50%] w-[45%] h-[15%] border border-slate-200 rounded-md flex flex-col bg-white overflow-hidden shadow-sm mx-1">
+                  <div className="h-[25%] w-full bg-amber-100 border-b border-amber-200"></div>
+                  <div className="flex-1 flex items-center justify-center text-[8px] text-slate-600 font-bold tracking-tight">인포데스크</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── App ── */
+    function App() {
+      const [activeFloor, setActiveFloor] = useState(16);
+
+      return (
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12">
+
+          <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Heart className="text-blue-600" size={24} fill="currentColor" />
+                </div>
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">사내 헬스키퍼 서비스</h1>
+              </div>
+              <div className="text-sm text-slate-500 font-medium hidden sm:block">
+                직원 건강 증진 프로그램
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto px-4 md:px-8 mt-8 space-y-8">
+
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-6 md:p-8 bg-gradient-to-br from-blue-50/50 to-indigo-50/50">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">헬스키퍼 예약 바로가기</h2>
+                  <p className="text-slate-600">본인이 소속된 회사의 버튼을 클릭하여 예약 페이지로 이동해주세요.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {COMPANY_LINKS.map((link) => (
+                    <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                      className={`group relative flex items-center p-4 rounded-xl text-white shadow-md transition-all duration-200 hover:shadow-lg focus:ring-4 focus:outline-none ${link.color}`}>
+                      <div className="bg-white rounded-lg w-16 h-12 flex items-center justify-center mr-4 shrink-0 p-1.5">
+                        <img src={link.logo} alt={link.logoAlt} className="w-full h-full object-contain" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-lg">{link.label}</div>
+                      </div>
+                      <ExternalLink className="opacity-70 group-hover:opacity-100 transition-opacity ml-2" size={24} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+              <div className="lg:col-span-7 space-y-6">
+
+                <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                    <Info className="text-blue-600" size={20} />
+                    <h3 className="font-bold text-lg text-slate-900">운영 방식</h3>
+                  </div>
+                  <div className="p-6">
+                    <ul className="space-y-4">
+                      {OPERATION_RULES.map((rule, idx) => (
+                        <li key={idx} className="flex items-start gap-3">
+                          <span className={`mt-0.5 shrink-0 ${rule.important ? 'text-red-500' : 'text-slate-400'}`}>
+                            {rule.icon}
+                          </span>
+                          <span className={`text-sm md:text-base leading-relaxed ${rule.important ? 'font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded' : 'text-slate-700'}`}>
+                            {rule.text}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+
+                <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                    <Heart className="text-rose-500" size={20} />
+                    <h3 className="font-bold text-lg text-slate-900">협조 사항</h3>
+                  </div>
+                  <div className="p-6">
+                    <ul className="space-y-4">
+                      {COOPERATION_RULES.map((rule, idx) => (
+                        <li key={idx} className="flex items-start gap-3">
+                          <span className="mt-0.5 shrink-0 text-slate-400">{rule.icon}</span>
+                          <span className="text-sm md:text-base leading-relaxed text-slate-700">{rule.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+
+              </div>
+
+              <div className="lg:col-span-5">
+                <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
+                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                    <MapIcon className="text-emerald-600" size={20} />
+                    <h3 className="font-bold text-lg text-slate-900">헬스키퍼실 위치</h3>
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                      <button onClick={() => setActiveFloor(13)}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${activeFloor === 13 ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        13층 헬스키퍼실
+                      </button>
+                      <button onClick={() => setActiveFloor(16)}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${activeFloor === 16 ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                        16층 헬스키퍼실
+                      </button>
+                    </div>
+                    <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 flex flex-col items-center justify-center p-4 relative overflow-hidden min-h-[380px]">
+                      {activeFloor === 13 ? <Floor13Map /> : <Floor16Map />}
+                      <p className="text-xs text-slate-400 mt-4 text-center">
+                        * 위 약도는 이해를 돕기 위한 참고용 도면입니다.
+                      </p>
+                    </div>
+                    <div className="mt-4 flex items-start gap-2 bg-blue-50 text-blue-800 p-3 rounded-lg text-sm">
+                      <Info className="shrink-0 mt-0.5" size={16} />
+                      <p>선택하신 예약 시간에 맞춰 <strong>{activeFloor}층</strong> 헬스키퍼실로 방문해 주시기 바랍니다.</p>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
